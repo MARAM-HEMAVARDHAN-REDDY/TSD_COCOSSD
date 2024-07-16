@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traffic Light Detection from Live Feed</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
+  <style>
+    video, canvas {
+      display: block;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" width="640" height="480" autoplay></video>
+  <canvas id="canvas" width="640" height="480"></canvas>
+  <script>
+    let model;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function onOpenCvReady() {
+      console.log('OpenCV.js is ready.');
+      main();
+    }
+
+var fps =0;
+var frameCount = 0;
+var lastTime = performance.now();
+ 
+function calculateFPS() {
+    const now = performance.now();
+    const duration = (now - lastTime) / 1000; 
+    fps = Number((frameCount / duration).toFixed(0));
+
+    frameCount = 0;
+    lastTime = now;
+}
+    async function main() {
+      console.log("Loading model...");
+      model = await cocoSsd.load();
+      console.log("Model loaded.");
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then((stream) => {
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+              video.play();
+              requestAnimationFrame(processFrame);
+            };
+          })
+          .catch((err) => {
+            console.error(`Error accessing webcam: ${err}`);
+          });
+      } else {
+        console.error('getUserMedia not supported by this browser.');
+      }
+    }
+
+
+
+    async function processFrame() {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const imgTensor = tf.browser.fromPixels(imgData);
+
+      const predictions = await model.detect(imgTensor);
+
+      frameCount++;
+        if (frameCount % 20 === 0) { 
+                calculateFPS();
+        }
+        // ctx.fillText(`FPS : ${fps}`, 15, 250);
+        console.log("FPS:",fps);
+
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      predictions.forEach(prediction => {
+        const [x, y, width, height] = prediction.bbox;
+        const label = prediction.class;
+
+        // Filter for traffic lights and their colors
+        if (label.includes('traffic light')) {
+          ctx.strokeStyle = 'yellow'; // default color
+          ctx.fillStyle = 'yellow'; // default color
+          
+          // Check for specific colors
+          if (label.includes('red')) {
+            ctx.strokeStyle = 'red';
+            ctx.fillStyle = 'red';
+          } else if (label.includes('green')) {
+            ctx.strokeStyle = 'green';
+            ctx.fillStyle = 'green';
+          }
+
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x, y, width, height);
+          ctx.font = '18px Arial';
+          ctx.fillText(label, x, y > 10 ? y - 5 : 10);
+        }
+      });
+
+      requestAnimationFrame(processFrame);
+    }
+  </script>
+</body>
+</html>
