@@ -81,7 +81,10 @@ function calculateFPS() {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      ctx.fillText(`FPS : ${fps}`, 15, 250);
+      ctx.fillStyle = 'yellow'; // default color
+      ctx.font = '25px Arial';
+      ctx.fillText(`FPS : ${fps}`, 260, 60);
+      ctx.font = '18px Arial';
 
       predictions.forEach(prediction => {
         const [x, y, width, height] = prediction.bbox;
