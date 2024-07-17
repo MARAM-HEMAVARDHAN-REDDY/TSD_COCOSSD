@@ -75,12 +75,13 @@ function calculateFPS() {
         if (frameCount % 20 === 0) { 
                 calculateFPS();
         }
-        ctx.fillText(`FPS : ${fps}`, 15, 250);
+        
         console.log("FPS:",fps);
 
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.fillText(`FPS : ${fps}`, 15, 250);
 
       predictions.forEach(prediction => {
         const [x, y, width, height] = prediction.bbox;
